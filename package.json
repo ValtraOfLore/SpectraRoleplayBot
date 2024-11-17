@@ -1,5 +1,5 @@
 {
-  "name": "spectrabottemplate",
+  "name": "spectraroleplaybot",
   "version": "1.0.0",
   "description": "Spectra's Discord bot.",
   "main": "server.js",
