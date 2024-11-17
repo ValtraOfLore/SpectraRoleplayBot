@@ -172,7 +172,8 @@ const commands = new Map([
           Required: true,
           Choices: [
             { ChoiceName: 'BotLogChannel', ChoiceValue: 'logchannel' },
-            { ChoiceName: 'CharacterApprovalChannel', ChoiceValue: 'characterapprovalchannel' }
+            { ChoiceName: 'CharacterApprovalChannel', ChoiceValue: 'characterapprovalchannel' },
+            { ChoiceName: 'IntroerChannel', ChoiceValue: 'introerchannel' },
           ]
         }
       ],
@@ -184,6 +185,42 @@ const commands = new Map([
         try {
           await dataStorage.setGuildValue(guildId, `channel_${channelType}`, channel);
           interaction.reply(`Channel ${channel} set as ${channelType}!`);
+        } catch(e) {
+          console.error(e);
+        }
+      }
+    )
+  ],
+  [
+    'set_config',
+    new DiscordCommand(
+      'set_config',
+      'Sets a config for the bot..',
+      [
+        {
+          Type: DiscordCommandArgumentTypes.STRING,
+          Name: 'configtype',
+          Description: 'The configuration type.',
+          Required: true,
+          Choices: [
+            { ChoiceName: 'ApprovedCharacterDM', ChoiceValue: 'approvedcharacterdm' },
+          ]
+        },
+        {
+          Type: DiscordCommandArgumentTypes.STRING,
+          Name: 'configvalue',
+          Description: 'The configuration value.',
+          Required: true
+        }
+      ],
+      DiscordCommandAccessLevel.ADMINISTRATOR,
+      async (interaction) => {
+        const guildId = interaction.guildId;
+        const configType = interaction.options?.get('configType')?.value;
+        const configValue = interaction.options?.get('configValue')?.value;
+        try {
+          await dataStorage.setGuildValue(guildId, `config_${configType}`, configValue);
+          interaction.reply(`Channel ${configType} set as ${configValue}!`);
         } catch(e) {
           console.error(e);
         }
@@ -224,13 +261,20 @@ const commands = new Map([
         const parentChannelId = interaction.channel?.parentId;
         const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
         if (thread && approvalChannel === parentChannelId) {
+          console.log(`Setting character approval status for ${thread.name}`);
           let emoji;
+          let message;
+          let sendIntrodMsg = false;
           switch (status) {
             case 'approved':
               emoji = ':thumbsup:';
+              const msg = await dataStorage.getGuildValue(guildId, 'config_approvedcharacterdm');
+              message = msg ? `${msg}\n\nCharacter: ${thread.name}` : `Your character ${thread.name} has been approved! Please meet with an intro'er for your intro!`;
+              sendIntrodMsg = true;
               break;
             case 'declined':
               emoji = ':x:';
+              message = `Your character ${thread.name} has been declined. You may appeal with officers by reaching out to an advisor/admin!`;
               break;
             case 'introduced':
               emoji = ':white_check_mark:';
@@ -240,7 +284,34 @@ const commands = new Map([
               emoji = ':timer:';
           }
 
-          await thread.setName(createThreadStatusName(emoji, thread.name));
+          try {
+            console.log(`Setting thread name for ${thread.name}`);
+            await thread.setName(createThreadStatusName(emoji, thread.name));
+          } catch (e) {
+            console.error(e);
+          }
+
+          if (sendIntrodMsg) {
+            const introdChannel = await dataStorage.getGuildValue(guildId, 'channel_introerchannel');
+            if (introdChannel) {
+              const channel = await interaction.guild.channels.fetch(introdChannel);
+              await channel.send(`${thread.name} has been approved for intro!`);
+            }
+          }
+
+          if (message && senddm) {
+            const ownerId = thread.ownerId;
+            const member = thread.guild.members.cache.get(ownerId);
+            if (member) {
+              console.log(`Sending DM to member about approval`);
+              try {
+                const dm = await member.createDM();
+                await dm.send(message);
+              } catch (e) {
+                console.error(e);
+              }
+            }
+          }
         }
       }
     )
