@@ -22,7 +22,7 @@ class DiscordCommand {
 
     async execute(interaction) {
         if (this.ExecutionFunction) {
-            let args = ""
+            let args = ''
             interaction.options.data.forEach(
                 (option) => {
                     args += `${JSON.stringify(option.value)} `;
