@@ -12,21 +12,23 @@ async function massThread() {
     // await channel.threads.cache.each(thr => {
     //   threads.push(thr);
     // });
-    const fetchedThreads = await channel.threads.fetch({archived: {fetchAll: true, limit: 100}})
+    const fetchedThreads = await channel.threads.fetch() // {archived: {fetchAll: true, limit: 100}});
     fetchedThreads.threads.each(thr => {
       threads.push(thr);
     });
     // console.log(`Threads: ${JSON.stringify(threads)}`);
     console.log(`Need to change ${threads.length} for channel ${channel}`);
     for (key in threads) {
+      const thread = threads[key];
       try {
-        const thread = threads[key];
-        const threadName = createThreadStatusName(':white_check_mark:', thread.name);
-        console.log(`${key}/${threads.length} | Changing name for ${thread.name}`);
-        if (thread.archived) {
-          await thread.setArchived(false);
-        }
+        if (thread.name.match(':white_check_mark:')) {
+          const threadName = createThreadStatusName('✅', thread.name);
+          console.log(`${key}/${threads.length} | Changing name for ${thread.name}`);
+          if (thread.archived) {
+            await thread.setArchived(false);
+         }
         await thread.setName(threadName);
+        }
       } catch (e) {
         console.error(e);
         errQueue.push(e);
