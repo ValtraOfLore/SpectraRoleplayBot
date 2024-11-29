@@ -15,17 +15,13 @@ async function main() {
   const client = await clientManager.getClient();
 
   // On Chat
-  client.on(Events.InteractionCreate, (interaction) => {
+  client.on(Events.InteractionCreate, async (interaction) => {
     console.log(`Interaction Received: ${interaction.toString()}`);
     if (interaction.isChatInputCommand()) {
       const cmd = commands.get(interaction.commandName)
       if (cmd) {
-<<<<<<< Updated upstream
-        cmd.execute(interaction);
-=======
         const replyVal = await cmd.execute(interaction);
         interaction.reply(replyVal || `Command ${cmd.Name} succeeded`);
->>>>>>> Stashed changes
       } else {
         console.error(`Commands ${interaction.commandName} not found`);
       }
