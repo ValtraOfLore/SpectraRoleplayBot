@@ -316,6 +316,36 @@ const commands = new Map([
       }
     )
   ],
+  [
+    'mark_intro',
+    new DiscordCommand(
+      'mark_intro',
+      'Sets the character as introd.',
+      [],
+      DiscordCommandAccessLevel.GUEST,
+      async (interaction) => {
+        const guildId = interaction.guildId;
+        const thread = interaction.channel;
+        const parentChannelId = interaction.channel?.parentId;
+        const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
+        if (thread && approvalChannel === parentChannelId) {
+          console.log(`Setting character approval status for ${thread.name} as introd`);
+
+          if (thread.name?.match(':thumbsup:')){
+            try {
+              console.log(`Setting thread name for ${thread.name}`);
+              await thread.setName(createThreadStatusName(':white_check_mark:', thread.name));
+            }   catch (e) {
+              console.error(e);
+            }
+          } else {
+            interaction.reply('Character must be approved before being marked introd!');
+            console.warn(`${thread.name} has not been approved!`);
+          }
+        }
+      }
+    )
+  ],
 ]);
 
 module.exports = { commands }
