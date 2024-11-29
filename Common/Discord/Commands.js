@@ -267,21 +267,21 @@ const commands = new Map([
           let sendIntrodMsg = false;
           switch (status) {
             case 'approved':
-              emoji = ':thumbsup:';
+              emoji = '👍';
               const msg = await dataStorage.getGuildValue(guildId, 'config_approvedcharacterdm');
               message = msg ? `${msg}\n\nCharacter: ${thread.name}` : `Your character ${thread.name} has been approved! Please meet with an intro'er for your intro!`;
               sendIntrodMsg = true;
               break;
             case 'declined':
-              emoji = ':x:';
+              emoji = '❌';
               message = `Your character ${thread.name} has been declined. You may appeal with officers by reaching out to an advisor/admin!`;
               break;
             case 'introduced':
-              emoji = ':white_check_mark:';
+              emoji = '✅';
               break;
             case 'awaiting':
             default:
-              emoji = ':timer:';
+              emoji = '⏱️';
           }
 
           try {
@@ -334,13 +334,13 @@ const commands = new Map([
           if (thread.name?.match(':thumbsup:')){
             try {
               console.log(`Setting thread name for ${thread.name}`);
-              await thread.setName(createThreadStatusName(':white_check_mark:', thread.name));
+              await thread.setName(createThreadStatusName('✅', thread.name));
             }   catch (e) {
               console.error(e);
             }
           } else {
-            interaction.reply('Character must be approved before being marked introd!');
             console.warn(`${thread.name} has not been approved!`);
+            return 'Character must be approved before being marked introd!';
           }
         }
       }
@@ -348,4 +348,4 @@ const commands = new Map([
   ],
 ]);
 
-module.exports = { commands }
+module.exports = { commands };

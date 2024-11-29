@@ -1,6 +1,7 @@
 function createThreadStatusName(emoji, name) {
-    const regex = /:[a-zA-Z0-9_]+:/;
-    const finalName = name.replace(regex, '');
+    const regexDiscordEmoji = /:[a-zA-Z0-9_]+:/;
+    const regexEmoji = /^(?:(?:\p{RI}\p{RI}|\p{Emoji}(?:\p{Emoji_Modifier}|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?(?:\u{200D}\p{Emoji}(?:\p{Emoji_Modifier}|\u{FE0F}\u{20E3}?|[\u{E0020}-\u{E007E}]+\u{E007F})?)*)|[\u{1f900}-\u{1f9ff}\u{2600}-\u{26ff}\u{2700}-\u{27bf}])+$/u;
+    const finalName = name.replace(regexDiscordEmoji, '').replace(regexEmoji, '');
     return `${emoji} ${finalName}`;
 }
 

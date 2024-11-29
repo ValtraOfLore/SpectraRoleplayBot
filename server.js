@@ -20,7 +20,12 @@ async function main() {
     if (interaction.isChatInputCommand()) {
       const cmd = commands.get(interaction.commandName)
       if (cmd) {
+<<<<<<< Updated upstream
         cmd.execute(interaction);
+=======
+        const replyVal = await cmd.execute(interaction);
+        interaction.reply(replyVal || `Command ${cmd.Name} succeeded`);
+>>>>>>> Stashed changes
       } else {
         console.error(`Commands ${interaction.commandName} not found`);
       }
@@ -35,7 +40,7 @@ async function main() {
     console.log(`Thread has been created! Name: ${thread.name} | Channel: ${thread.parent} | Channel ID: ${parentId} | Guild ID: ${guildId}`);
     // Character Approval Channel
     if (guildId && parentId && parentId === approvalChannel) {
-      const newName = createThreadStatusName(':timer:', name);
+      const newName = createThreadStatusName('⏱️', name);
       console.log(`Renaming ${name} to ${newName}`);
       try {
         await thread.setName(newName);
