@@ -1,4 +1,3 @@
-const { get } = require('axios');
 const { ClientManager } = require('./Common/Discord/ClientManager.js');
 const { commands } = require('./Common/Discord/Commands.js');
 const { DiscordDataStorage } = require('./Common/Discord/DiscordDataStorage.js');
