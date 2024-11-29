@@ -15,12 +15,13 @@ async function main() {
   const client = await clientManager.getClient();
 
   // On Chat
-  client.on(Events.InteractionCreate, (interaction) => {
+  client.on(Events.InteractionCreate, async (interaction) => {
     console.log(`Interaction Received: ${interaction.toString()}`);
     if (interaction.isChatInputCommand()) {
       const cmd = commands.get(interaction.commandName)
       if (cmd) {
-        cmd.execute(interaction);
+        await cmd.execute(interaction);
+        interaction.reply(`Command ${cmd.Name} succeeded`);
       } else {
         console.error(`Commands ${interaction.commandName} not found`);
       }
