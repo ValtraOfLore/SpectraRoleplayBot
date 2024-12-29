@@ -20,8 +20,14 @@ async function main() {
     if (interaction.isChatInputCommand()) {
       const cmd = commands.get(interaction.commandName)
       if (cmd) {
-        const replyVal = await cmd.execute(interaction);
-        interaction.reply(replyVal || `Command ${cmd.Name} succeeded`);
+        try {
+          await interaction.deferReply({ ephemeral: true });
+          const replyVal = await cmd.execute(interaction);
+          console.log(`Command ${cmd.Name} completed with: ${replyVal}`);
+          await interaction.editReply({ content: replyVal || `Command ${cmd.Name} succeeded`, ephemeral: true });
+        } catch(err) {
+          console.error(err);
+        }
       } else {
         console.error(`Commands ${interaction.commandName} not found`);
       }

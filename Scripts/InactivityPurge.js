@@ -19,7 +19,7 @@ async function kickInactivity() {
       toKick.push(member);
     });
 
-    for (key in toKick) {
+    for (let key in toKick) {
       const member = toKick[key];
       // DO NOT UNCOMMENT
       // try {
