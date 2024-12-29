@@ -5,4 +5,4 @@ function createThreadStatusName(emoji, name) {
     return `${emoji} ${finalName}`;
 }
 
-module.exports = { createThreadStatusName }
+module.exports = { createThreadStatusName };

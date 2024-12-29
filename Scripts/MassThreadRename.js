@@ -18,7 +18,7 @@ async function massThread() {
     });
     // console.log(`Threads: ${JSON.stringify(threads)}`);
     console.log(`Need to change ${threads.length} for channel ${channel}`);
-    for (key in threads) {
+    for (let key in threads) {
       const thread = threads[key];
       try {
         if (thread.name.match(':white_check_mark:')) {

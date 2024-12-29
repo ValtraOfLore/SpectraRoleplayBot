@@ -15,7 +15,7 @@ const commands = new Map([
       [],
       DiscordCommandAccessLevel.MODERATOR,
       (interaction) => {
-        interaction.reply('Live!');
+        return 'Live!';
       }
     )
   ],
@@ -50,10 +50,11 @@ const commands = new Map([
           const roleId = interaction.options?.get('role')?.value;
           const accessLvl = interaction.options?.get('access_level')?.value;
           await dataStorage.setGuildValue(guildId, `role_access_level_${roleId}`, accessLvl);
-          interaction.reply('access_level set for role!');
+          return 'access_level set for role!';
         } catch(e) {
-          interaction.reply('Failed to set access_level for role!');
           console.error(e);
+          return 'Failed to set access_level for role!';
+          
         }
       }
     )
@@ -91,16 +92,17 @@ const commands = new Map([
           const command = commands.get(commandName);
 
           if (!command) {
-            interaction.reply(`Command ${commandName} not found!`);
+            return `Command ${commandName} not found!`;
           } else if (command.DefaultAccessLevel === DiscordCommandAccessLevel.OWNER) {
-            interaction.reply(`Cannot override OWNER level commands!`);
+            return `Cannot override OWNER level commands!`;
           } else {
             await dataStorage.setGuildValue(guildId, `command_level_${commandName}`, accessLvl);
-            interaction.reply('access_level set for command!');
+            return 'access_level set for command!';
           }
         } catch(e) {
-          interaction.reply('Failed to set access_level for command!');
           console.error(e);
+          return 'Failed to set access_level for command!';
+          
         }
       }
     )
@@ -122,7 +124,7 @@ const commands = new Map([
       async (interaction) => {
         const role = interaction.options?.get('role')?.value;
         const accessLevel = await dataStorage.getGuildValue(interaction.guildId, `role_access_level_${role}`);
-        interaction.reply(`Role ${role} has access level: ${accessLevel || '4'}`);
+        return `Role ${role} has access level: ${accessLevel || '4'}`;
       }
     )
   ],
@@ -145,10 +147,10 @@ const commands = new Map([
         const command = commands.get(commandName);
 
         if (!command) {
-          interaction.reply(`Command ${commandName} not found!`);
+          return `Command ${commandName} not found!`;
         } else {
           const accessLevel = await command.getCommandAccessLevel(interaction);
-          interaction.reply(`Command ${commandName} has access level: ${accessLevel || '4'}`);
+          return `Command ${commandName} has access level: ${accessLevel || '4'}`;
         }
       }
     )
@@ -184,7 +186,7 @@ const commands = new Map([
         const channelType = interaction.options?.get('channeltype')?.value;
         try {
           await dataStorage.setGuildValue(guildId, `channel_${channelType}`, channel);
-          interaction.reply(`Channel ${channel} set as ${channelType}!`);
+          return`Channel ${channel} set as ${channelType}!`;
         } catch(e) {
           console.error(e);
         }
@@ -220,7 +222,7 @@ const commands = new Map([
         const configValue = interaction.options?.get('configValue')?.value;
         try {
           await dataStorage.setGuildValue(guildId, `config_${configType}`, configValue);
-          interaction.reply(`Channel ${configType} set as ${configValue}!`);
+          return `Channel ${configType} set as ${configValue}!`;
         } catch(e) {
           console.error(e);
         }
@@ -331,7 +333,7 @@ const commands = new Map([
         if (thread && approvalChannel === parentChannelId) {
           console.log(`Setting character approval status for ${thread.name} as introd`);
 
-          if (thread.name?.match(':thumbsup:')){
+          if (thread.name?.match('👍')){
             try {
               console.log(`Setting thread name for ${thread.name}`);
               await thread.setName(createThreadStatusName('✅', thread.name));
