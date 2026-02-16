@@ -18,7 +18,7 @@ async function main() {
   client.on(Events.InteractionCreate, async (interaction) => {
     console.log(`Interaction Received: ${interaction.toString()}`);
     if (interaction.isChatInputCommand()) {
-      const cmd = commands.get(interaction.commandName)
+      const cmd = commands.get(interaction.commandName);
       if (cmd) {
         try {
           await interaction.deferReply({ ephemeral: true });

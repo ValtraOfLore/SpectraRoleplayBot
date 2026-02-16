@@ -54,7 +54,6 @@ const commands = new Map([
         } catch(e) {
           console.error(e);
           return 'Failed to set access_level for role!';
-          
         }
       }
     )
@@ -186,9 +185,10 @@ const commands = new Map([
         const channelType = interaction.options?.get('channeltype')?.value;
         try {
           await dataStorage.setGuildValue(guildId, `channel_${channelType}`, channel);
-          return`Channel ${channel} set as ${channelType}!`;
+          return `Channel ${channel} set as ${channelType}!`;
         } catch(e) {
           console.error(e);
+          return `An error has occurred while setting channel.`;
         }
       }
     )
@@ -225,6 +225,7 @@ const commands = new Map([
           return `Channel ${configType} set as ${configValue}!`;
         } catch(e) {
           console.error(e);
+          return `An error has occurred while setting configs.`;
         }
       }
     )

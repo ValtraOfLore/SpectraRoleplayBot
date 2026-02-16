@@ -82,6 +82,6 @@ const DiscordCommandAccessLevel = {
     ADMINISTRATOR: 2,
     MODERATOR: 3,
     GUEST: 4
-}
+};
 
 module.exports = { DiscordCommand, DiscordCommandArgumentTypes, DiscordCommandAccessLevel };
