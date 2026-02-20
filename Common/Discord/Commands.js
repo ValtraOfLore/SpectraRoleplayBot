@@ -1,6 +1,7 @@
 const { DiscordCommand, DiscordCommandArgumentTypes, DiscordCommandAccessLevel } = require('./DiscordCommand');
 const { DiscordDataStorage } = require('./DiscordDataStorage');
 const { createThreadStatusName } = require('../Helpers/Threads.js');
+const { postAwards } = require('../Helpers/Awards.js');
 const Dotenv = require('dotenv');
 
 Dotenv.config();
@@ -345,6 +346,170 @@ const commands = new Map([
             console.warn(`${thread.name} has not been approved!`);
             return 'Character must be approved before being marked introd!';
           }
+        }
+      }
+    )
+  ],
+  [
+    'post_award',
+    new DiscordCommand(
+      'post_award',
+      'Posts a new award entry that can be given out to characters.',
+      [
+        {
+          Type: DiscordCommandArgumentTypes.STRING,
+          Name: 'award_id',
+          Description: 'The id given to the award. This must be a snake-case lowercase word.',
+          Required: true
+        },
+        {
+          Type: DiscordCommandArgumentTypes.STRING,
+          Name: 'award_display_name',
+          Description: 'The display name given to the award.',
+          Required: true
+        },
+        {
+          Type: DiscordCommandArgumentTypes.STRING,
+          Name: 'award_image',
+          Description: 'The image URL to the award. This must be a direct link image URL.',
+          Required: true
+        },
+        {
+          Type: DiscordCommandArgumentTypes.STRING,
+          Name: 'award_description',
+          Description: 'The description given to the award.',
+          Required: false
+        }
+      ],
+      DiscordCommandAccessLevel.MODERATOR,
+      async (interaction) => {
+        const guildId = interaction.guildId;
+        const awardId= interaction.options?.get('award_id')?.value;
+        const awardName = interaction.options?.get('award_display_name')?.value;
+        const awardImgUrl = interaction.options?.get('award_image')?.value;
+        const awardDescr = interaction.options?.get('award_description')?.value;
+
+        if (!awardId.match(/^[a-z]+(_[a-z]+)*$/)) {
+          return `Fail to process award. The award_id you entered "${awardId}" must be snake-case lowercase with no special characters.`;
+        } else if (!awardImgUrl.match(/^https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s]*)?$/)) {
+          return `Failed to process award. The award_image you entered "${awardImgUrl}" must be in valid direct-link format. Ensure that the format (e.g. jpg, png) appears at the end of the URL.`
+        }
+
+        const guildAwards = await dataStorage.getGuildValue(guildId, 'awards') ?? [];
+
+        if (guildAwards.find((award) => award.awardId === awardId))
+          return `The awardId you used "${awardId}" already exists. Please use a new one.`;
+
+        try {
+          const awardObj = { awardId, awardName, awardDescr, awardImgUrl };
+          guildAwards.push(awardObj);
+          await dataStorage.setGuildValue(guildId, 'awards', guildAwards);
+          return `Award created successfully: \n${JSON.stringify(awardObj)}`;
+        } catch(e) {
+          console.error(e);
+          return 'An error has occurred when trying to add an award.';
+        }
+      }
+    )
+  ],
+  [
+    'list_awards',
+    new DiscordCommand(
+      'list_awards',
+      'Lists all of the available awards.',
+      [],
+      DiscordCommandAccessLevel.GUEST,
+      async (interaction) => {
+        const guildId = interaction.guildId;
+
+        const guildAwards = await dataStorage.getGuildValue(guildId, 'awards') ?? [];
+
+        return guildAwards.map((award) => `Name: ${award.awardName}, ID: ${award.awardId}, ImgURL: ${award.awardImgUrl}, Description: ${award.awardDescr}`).join('\n');
+      }
+    )
+  ],
+  [
+    'give_award',
+    new DiscordCommand(
+      'give_award',
+      'Gives an award to a character.',
+      [
+        {
+          Type: DiscordCommandArgumentTypes.STRING,
+          Name: 'award_id',
+          Description: 'The id given to the award. This must be a snake-case lowercase word.',
+          Required: true
+        }
+      ],
+      DiscordCommandAccessLevel.MODERATOR,
+      async (interaction) => {
+        const guildId = interaction.guildId;
+        const awardId= interaction.options?.get('award_id')?.value;
+        const thread = interaction.channel;
+        const parentChannelId = interaction.channel?.parentId;
+        const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
+        const threadOwnerId = thread?.ownerId;
+        const threadId = thread?.id;
+
+        if (thread && threadId && approvalChannel === parentChannelId) {
+          const guildAwards = await dataStorage.getGuildValue(guildId, 'awards') ?? [];
+          const award = guildAwards.find((guildAward) => guildAward.awardId === awardId);
+
+          if (!award)
+            return `${awardId} is not a valid award_id. Please use a valid award_id or create one using /post_award.`;
+
+          const characterAwards = await dataStorage.getUserValue(threadOwnerId, `awards_${threadId}`) ?? [];
+
+          if (characterAwards.find((ownedAwardId) => ownedAwardId === awardId))
+            return `This character already has award ${awardId}.`;
+
+          try {
+            characterAwards.push(awardId);
+            await dataStorage.setUserValue(threadOwnerId, `awards_${threadId}`, characterAwards);
+
+            const awardMsgThreads = await dataStorage.getUserValue(threadOwnerId, `awards_${threadId}_messages`) ?? [];
+            const guildAwards = await dataStorage.getGuildValue(guildId, 'awards');
+            const urlArray = characterAwards.map((awardId) => guildAwards.find((awardObj) => awardObj.awardId === awardId)?.awardImgUrl);
+            const newMsgIds = await postAwards(thread, urlArray, awardMsgThreads);
+
+            dataStorage.setUserValue(threadOwnerId, `awards_${threadId}_messages`, newMsgIds);
+
+            return `Award successfully added!`;
+          } catch(e) {
+            console.log(e);
+            return `An error has occurred while trying to give an award.`;
+          }
+          
+        }
+      }
+    )
+  ],
+  [
+    'awards',
+    new DiscordCommand(
+      'awards',
+      'Posts awards for the current character-profile.',
+      [],
+      DiscordCommandAccessLevel.GUEST,
+      async (interaction) => {
+        const guildId = interaction.guildId;
+        const thread = interaction.channel;
+        const parentChannelId = interaction.channel?.parentId;
+        const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
+        const threadOwnerId = thread?.ownerId;
+        const threadId = thread?.id;
+
+        if (thread && threadId && approvalChannel === parentChannelId) {
+          const characterAwards = await dataStorage.getUserValue(threadOwnerId, `awards_${threadId}`) ?? [];
+          const awardMsgThreads = await dataStorage.getUserValue(threadOwnerId, `awards_${threadId}_messages`) ?? [];
+          const guildAwards = await dataStorage.getGuildValue(guildId, 'awards');
+          const urlArray = characterAwards.map((awardId) => guildAwards.find((awardObj) => awardObj.awardId === awardId)?.awardImgUrl);
+          const newMsgIds = await postAwards(thread, urlArray, awardMsgThreads);
+
+          if (newMsgIds.length < 1)
+            return `This user has no awards!`;
+
+          dataStorage.setUserValue(threadOwnerId, `awards_${threadId}_messages`, newMsgIds);
         }
       }
     )
