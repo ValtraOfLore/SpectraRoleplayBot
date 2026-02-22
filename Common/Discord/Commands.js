@@ -207,6 +207,7 @@ const commands = new Map([
           Required: true,
           Choices: [
             { ChoiceName: 'ApprovedCharacterDM', ChoiceValue: 'approvedcharacterdm' },
+            { ChoiceName: 'NeedsIntroRole', ChoiceValue: 'needsintrorole' },
           ]
         },
         {
@@ -219,11 +220,11 @@ const commands = new Map([
       DiscordCommandAccessLevel.ADMINISTRATOR,
       async (interaction) => {
         const guildId = interaction.guildId;
-        const configType = interaction.options?.get('configType')?.value;
-        const configValue = interaction.options?.get('configValue')?.value;
+        const configType = interaction.options?.get('configtype')?.value;
+        const configValue = interaction.options?.get('configvalue')?.value;
         try {
           await dataStorage.setGuildValue(guildId, `config_${configType}`, configValue);
-          return `Channel ${configType} set as ${configValue}!`;
+          return `Configuration ${configType} set as ${configValue}!`;
         } catch(e) {
           console.error(e);
           return `An error has occurred while setting configs.`;
@@ -269,12 +270,14 @@ const commands = new Map([
           let emoji;
           let message;
           let sendIntrodMsg = false;
+          let checkNeedsIntroRole = false;
           switch (status) {
             case 'approved':
               emoji = '👍';
               const msg = await dataStorage.getGuildValue(guildId, 'config_approvedcharacterdm');
               message = msg ? `${msg}\n\nCharacter: ${thread.name}` : `Your character ${thread.name} has been approved! Please meet with an intro'er for your intro!`;
               sendIntrodMsg = true;
+              checkNeedsIntroRole = true;
               break;
             case 'declined':
               emoji = '❌';
@@ -282,6 +285,7 @@ const commands = new Map([
               break;
             case 'introduced':
               emoji = '✅';
+              checkNeedsIntroRole = true;
               break;
             case 'awaiting':
             default:
@@ -300,6 +304,30 @@ const commands = new Map([
             if (introdChannel) {
               const channel = await interaction.guild.channels.fetch(introdChannel);
               await channel.send(`${thread.name} has been approved for intro!`);
+            }
+          }
+
+          if (checkNeedsIntroRole) {
+            const role = await dataStorage.getGuildValue(guildId, 'config_needsintrorole');
+            if (role) {
+              const owner = await thread.fetchOwner({ withMember: true })?.guildMember;
+              let charToIntroCnt = await dataStorage.getUserValue(thread.ownerId, `intro_count_${guildId}`) ?? 0;
+
+              if (status === 'approved') {
+                charToIntroCnt += 1;
+              } else if (status === 'introduced') {
+                charToIntroCnt = charToIntroCnt > 0 ? charToIntroCnt - 1 : 0;
+              }
+
+              await dataStorage.setUserValue(thread.ownerId, `intro_count_${guildId}`, charToIntroCnt);
+
+              if (charToIntroCnt > 0) {
+                console.log('User needs intro. Upserting Intro Role');
+                await owner.role.add(role);
+              } else {
+                console.log('The user no longer needs an intro. Removing the Intro Role.');
+                await owner.role.remove(role);
+              }
             }
           }
 
