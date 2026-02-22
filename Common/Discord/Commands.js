@@ -374,6 +374,24 @@ const commands = new Map([
             try {
               console.log(`Setting thread name for ${thread.name}`);
               await thread.setName(createThreadStatusName('✅', thread.name));
+
+              const role = await dataStorage.getGuildValue(guildId, 'config_needsintrorole');
+              if (role) {
+                const owner = await thread.fetchOwner({ withMember: true });
+                const ownerMember = owner?.guildMember;
+                let charToIntroCnt = await dataStorage.getUserValue(thread.ownerId, `intro_count_${guildId}`) ?? 0;
+                charToIntroCnt = charToIntroCnt > 0 ? charToIntroCnt - 1 : 0;
+
+                dataStorage.setUserValue(thread.ownerId, `intro_count_${guildId}`, charToIntroCnt);
+
+                if (ownerMember && charToIntroCnt < 1) {
+                  console.log('The user no longer needs an intro. Removing the Intro Role.');
+                  ownerMember.roles.remove(role);
+                } else {
+                  console.warn('Owner not found. Skipping role assignment');
+                }
+              }
+
             } catch (e) {
               console.error(e);
             }
