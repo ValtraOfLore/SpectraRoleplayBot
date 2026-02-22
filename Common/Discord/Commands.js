@@ -11,7 +11,7 @@ const commands = new Map([
   [
     'pingbot',
     new DiscordCommand(
-      'pingbot', 
+      'pingbot',
       'Pings the bot.',
       [],
       DiscordCommandAccessLevel.MODERATOR,
@@ -52,7 +52,7 @@ const commands = new Map([
           const accessLvl = interaction.options?.get('access_level')?.value;
           await dataStorage.setGuildValue(guildId, `role_access_level_${roleId}`, accessLvl);
           return 'access_level set for role!';
-        } catch(e) {
+        } catch (e) {
           console.error(e);
           return 'Failed to set access_level for role!';
         }
@@ -99,10 +99,10 @@ const commands = new Map([
             await dataStorage.setGuildValue(guildId, `command_level_${commandName}`, accessLvl);
             return 'access_level set for command!';
           }
-        } catch(e) {
+        } catch (e) {
           console.error(e);
           return 'Failed to set access_level for command!';
-          
+
         }
       }
     )
@@ -187,7 +187,7 @@ const commands = new Map([
         try {
           await dataStorage.setGuildValue(guildId, `channel_${channelType}`, channel);
           return `Channel ${channel} set as ${channelType}!`;
-        } catch(e) {
+        } catch (e) {
           console.error(e);
           return `An error has occurred while setting channel.`;
         }
@@ -225,7 +225,7 @@ const commands = new Map([
         try {
           await dataStorage.setGuildValue(guildId, `config_${configType}`, configValue);
           return `Configuration ${configType} set as ${configValue}!`;
-        } catch(e) {
+        } catch (e) {
           console.error(e);
           return `An error has occurred while setting configs.`;
         }
@@ -294,7 +294,7 @@ const commands = new Map([
 
           try {
             console.log(`Setting thread name for ${thread.name}`);
-            await thread.setName(createThreadStatusName(emoji, thread.name));
+            thread.setName(createThreadStatusName(emoji, thread.name));
           } catch (e) {
             console.error(e);
           }
@@ -303,32 +303,39 @@ const commands = new Map([
             const introdChannel = await dataStorage.getGuildValue(guildId, 'channel_introerchannel');
             if (introdChannel) {
               const channel = await interaction.guild.channels.fetch(introdChannel);
-              await channel.send(`${thread.name} has been approved for intro!`);
+              channel.send(`${thread.name} has been approved for intro!`);
             }
           }
 
-          if (checkNeedsIntroRole) {
-            const role = await dataStorage.getGuildValue(guildId, 'config_needsintrorole');
-            if (role) {
-              const owner = await thread.fetchOwner({ withMember: true })?.guildMember;
-              let charToIntroCnt = await dataStorage.getUserValue(thread.ownerId, `intro_count_${guildId}`) ?? 0;
+          try {
+            if (checkNeedsIntroRole) {
+              const role = await dataStorage.getGuildValue(guildId, 'config_needsintrorole');
+              if (role) {
+                const owner = await thread.fetchOwner({ withMember: true });
+                const ownerMember = owner?.guildMember;
+                let charToIntroCnt = await dataStorage.getUserValue(thread.ownerId, `intro_count_${guildId}`) ?? 0;
 
-              if (status === 'approved') {
-                charToIntroCnt += 1;
-              } else if (status === 'introduced') {
-                charToIntroCnt = charToIntroCnt > 0 ? charToIntroCnt - 1 : 0;
-              }
+                if (status === 'approved') {
+                  charToIntroCnt += 1;
+                } else if (status === 'introduced') {
+                  charToIntroCnt = charToIntroCnt > 0 ? charToIntroCnt - 1 : 0;
+                }
 
-              await dataStorage.setUserValue(thread.ownerId, `intro_count_${guildId}`, charToIntroCnt);
+                dataStorage.setUserValue(thread.ownerId, `intro_count_${guildId}`, charToIntroCnt);
 
-              if (charToIntroCnt > 0 && owner) {
-                console.log('User needs intro. Upserting Intro Role');
-                await owner.roles.add(role);
-              } else if (owner) {
-                console.log('The user no longer needs an intro. Removing the Intro Role.');
-                await owner.roles.remove(role);
+                if (charToIntroCnt > 0 && ownerMember) {
+                  console.log('User needs intro. Upserting Intro Role');
+                  ownerMember.roles.add(role);
+                } else if (owner) {
+                  console.log('The user no longer needs an intro. Removing the Intro Role.');
+                  ownerMember.roles.remove(role);
+                } else {
+                  console.warn('Owner not found. Skipping role assignment');
+                }
               }
             }
+          } catch (e) {
+            console.error(e);
           }
 
           if (message && senddm) {
@@ -338,7 +345,7 @@ const commands = new Map([
               console.log(`Sending DM to member about approval`);
               try {
                 const dm = await member.createDM();
-                await dm.send(message);
+                dm.send(message);
               } catch (e) {
                 console.error(e);
               }
@@ -363,11 +370,11 @@ const commands = new Map([
         if (thread && approvalChannel === parentChannelId) {
           console.log(`Setting character approval status for ${thread.name} as introd`);
 
-          if (thread.name?.match('👍')){
+          if (thread.name?.match('👍')) {
             try {
               console.log(`Setting thread name for ${thread.name}`);
               await thread.setName(createThreadStatusName('✅', thread.name));
-            }   catch (e) {
+            } catch (e) {
               console.error(e);
             }
           } else {
@@ -412,7 +419,7 @@ const commands = new Map([
       DiscordCommandAccessLevel.MODERATOR,
       async (interaction) => {
         const guildId = interaction.guildId;
-        const awardId= interaction.options?.get('award_id')?.value;
+        const awardId = interaction.options?.get('award_id')?.value;
         const awardName = interaction.options?.get('award_display_name')?.value;
         const awardImgUrl = interaction.options?.get('award_image')?.value;
         const awardDescr = interaction.options?.get('award_description')?.value;
@@ -433,7 +440,7 @@ const commands = new Map([
           guildAwards.push(awardObj);
           await dataStorage.setGuildValue(guildId, 'awards', guildAwards);
           return `Award created successfully: \n${JSON.stringify(awardObj)}`;
-        } catch(e) {
+        } catch (e) {
           console.error(e);
           return 'An error has occurred when trying to add an award.';
         }
@@ -472,7 +479,7 @@ const commands = new Map([
       DiscordCommandAccessLevel.MODERATOR,
       async (interaction) => {
         const guildId = interaction.guildId;
-        const awardId= interaction.options?.get('award_id')?.value;
+        const awardId = interaction.options?.get('award_id')?.value;
         const thread = interaction.channel;
         const parentChannelId = interaction.channel?.parentId;
         const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
@@ -503,11 +510,11 @@ const commands = new Map([
             dataStorage.setUserValue(threadOwnerId, `awards_${threadId}_messages`, newMsgIds);
 
             return `Award successfully added!`;
-          } catch(e) {
+          } catch (e) {
             console.log(e);
             return `An error has occurred while trying to give an award.`;
           }
-          
+
         }
       }
     )
