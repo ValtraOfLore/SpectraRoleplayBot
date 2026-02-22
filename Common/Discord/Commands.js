@@ -326,7 +326,7 @@ const commands = new Map([
                 if (charToIntroCnt > 0 && ownerMember) {
                   console.log('User needs intro. Upserting Intro Role');
                   ownerMember.roles.add(role);
-                } else if (owner) {
+                } else if (ownerMember) {
                   console.log('The user no longer needs an intro. Removing the Intro Role.');
                   ownerMember.roles.remove(role);
                 } else {
