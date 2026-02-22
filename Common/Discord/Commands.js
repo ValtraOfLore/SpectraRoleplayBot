@@ -321,12 +321,12 @@ const commands = new Map([
 
               await dataStorage.setUserValue(thread.ownerId, `intro_count_${guildId}`, charToIntroCnt);
 
-              if (charToIntroCnt > 0) {
+              if (charToIntroCnt > 0 && owner) {
                 console.log('User needs intro. Upserting Intro Role');
-                await owner.role.add(role);
-              } else {
+                await owner.roles.add(role);
+              } else if (owner) {
                 console.log('The user no longer needs an intro. Removing the Intro Role.');
-                await owner.role.remove(role);
+                await owner.roles.remove(role);
               }
             }
           }
