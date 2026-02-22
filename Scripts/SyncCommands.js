@@ -1,3 +1,5 @@
 const { updateCommands } = require('../Common/Discord/UpdateCommands');
 
-updateCommands(process.argv[2] || true);
+const oryonServerOnly = !(process.argv[2] === 'false');
+console.log(`Updating commands. Oryon server only is set to: ${oryonServerOnly}`);
+updateCommands(oryonServerOnly);

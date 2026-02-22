@@ -1,7 +1,9 @@
+const { ChannelType } = require('discord.js');
 const { DiscordCommand, DiscordCommandArgumentTypes, DiscordCommandAccessLevel } = require('./DiscordCommand');
 const { DiscordDataStorage } = require('./DiscordDataStorage');
 const { createThreadStatusName } = require('../Helpers/Threads.js');
 const { postAwards } = require('../Helpers/Awards.js');
+const { pageAndProcessData } = require('../Helpers/PaginationHelper.js');
 const Dotenv = require('dotenv');
 
 Dotenv.config();
@@ -563,6 +565,37 @@ const commands = new Map([
             return `This user has no awards!`;
 
           dataStorage.setUserValue(threadOwnerId, `awards_${threadId}_messages`, newMsgIds);
+        }
+      }
+    )
+  ],
+  [
+    'clear_thread',
+    new DiscordCommand(
+      'clear_thread',
+      'Clears the thread of all members.',
+      [],
+      DiscordCommandAccessLevel.ADMINISTRATOR,
+      async (interaction) => {
+        const thread = interaction.channel;
+
+        if (thread.type !== ChannelType.PrivateThread)
+          return `This command can only be executed in a private thread!`;
+        
+        try {
+          await pageAndProcessData(
+            thread.members,
+            async (member) => {
+              member.remove();
+              return member;
+            },
+            100,
+            { withMember: true }
+          );
+          return `The thread has been cleared of members!`;
+      } catch(e) {
+         console.error(`Error occurred while trying to clear thread: ${e}`);
+         return `An error has occurred while trying to clear thread`
         }
       }
     )
