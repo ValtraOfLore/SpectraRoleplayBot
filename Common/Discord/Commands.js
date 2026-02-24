@@ -311,7 +311,7 @@ const commands = new Map([
             if (checkNeedsIntroRole) {
               const role = await dataStorage.getGuildValue(guildId, 'config_needsintrorole');
               if (role) {
-                const owner = await thread.fetchOwner({ withMember: true });
+                const owner = await thread.fetchOwner({ withMember: true, force: true });
                 const ownerMember = owner?.guildMember;
                 let charToIntroCnt = await dataStorage.getUserValue(thread.ownerId, `intro_count_${guildId}`) ?? 0;
 
@@ -377,7 +377,7 @@ const commands = new Map([
 
               const role = await dataStorage.getGuildValue(guildId, 'config_needsintrorole');
               if (role) {
-                const owner = await thread.fetchOwner({ withMember: true });
+                const owner = await thread.fetchOwner({ withMember: true, force: true });
                 const ownerMember = owner?.guildMember;
                 let charToIntroCnt = await dataStorage.getUserValue(thread.ownerId, `intro_count_${guildId}`) ?? 0;
                 charToIntroCnt = charToIntroCnt > 0 ? charToIntroCnt - 1 : 0;
