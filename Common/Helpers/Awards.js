@@ -14,17 +14,38 @@ async function getImageAsBuffer(url) {
 
 async function compositeImages(urlArray) {
     const awardPages = [];
+    const pageSize = 9500;
+    const tileSize = 3166;
+    const backgroundColor = { r: 24, g: 24, b: 24, alpha: 1 };
+    const outlineColor = '#3a3a3a';
+    const outlineThickness = 8;
+
+    const gridOutlineSvg = `
+<svg width="${pageSize}" height="${pageSize}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+    <rect x="${tileSize}" y="0" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+    <rect x="${tileSize * 2}" y="0" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+    <rect x="0" y="${tileSize}" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+    <rect x="${tileSize}" y="${tileSize}" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+    <rect x="${tileSize * 2}" y="${tileSize}" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+    <rect x="0" y="${tileSize * 2}" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+    <rect x="${tileSize}" y="${tileSize * 2}" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+    <rect x="${tileSize * 2}" y="${tileSize * 2}" width="${tileSize}" height="${tileSize}" fill="none" stroke="${outlineColor}" stroke-width="${outlineThickness}" />
+</svg>`;
 
     for (let i = 0; i < urlArray.length; i += 9) {
-        const awardPage = sharp({ create: { width: 9500, height: 9500, channels: 3, background: { r: 0, g: 0, b: 0, alpha: 1 } } });
+        const awardPage = sharp({ create: { width: pageSize, height: pageSize, channels: 3, background: backgroundColor } });
         const buffArrProm = urlArray.slice(i, i + 9).map(getImageAsBuffer);
         const buffArr = await Promise.all(buffArrProm);
         const compositeObjsArr = buffArr.map((buff, index) => {
-            const left = 3166*(index % 3);
-            const top = 3166*Math.floor(index / 3);
+            const left = tileSize * (index % 3);
+            const top = tileSize * Math.floor(index / 3);
             return { input: buff, left, top }
         });
-        const compositeImage = await awardPage.composite(compositeObjsArr).png().toBuffer();
+        const compositeImage = await awardPage
+            .composite([{ input: Buffer.from(gridOutlineSvg) }, ...compositeObjsArr])
+            .png()
+            .toBuffer();
         awardPages.push(compositeImage);
     }
 
