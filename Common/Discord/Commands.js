@@ -4,6 +4,7 @@ const { DiscordDataStorage } = require('./DiscordDataStorage');
 const { createThreadStatusName } = require('../Helpers/Threads.js');
 const { postAwards } = require('../Helpers/Awards.js');
 const { pageAndProcessData } = require('../Helpers/PaginationHelper.js');
+const { sendChunkedInteractionResponse } = require('../Helpers/DiscordMessageHelper.js');
 const Dotenv = require('dotenv');
 
 Dotenv.config();
@@ -479,7 +480,14 @@ const commands = new Map([
 
         const guildAwards = await dataStorage.getGuildValue(guildId, 'awards') ?? [];
 
-        return guildAwards.map((award) => `Name: ${award.awardName}, ID: ${award.awardId}, ImgURL: ${award.awardImgUrl}, Description: ${award.awardDescr}`).join('\n');
+        if (guildAwards.length < 1)
+          return 'No awards found.';
+
+        const awardListString = guildAwards
+          .map((award) => `Name: ${award.awardName}, ID: ${award.awardId}, ImgURL: ${award.awardImgUrl}, Description: ${award.awardDescr}`)
+          .join('\n');
+
+        return sendChunkedInteractionResponse(interaction, awardListString);
       }
     )
   ],
