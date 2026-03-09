@@ -24,6 +24,10 @@ async function main() {
           await interaction.deferReply({ ephemeral: true });
           const replyVal = await cmd.execute(interaction);
           console.log(`Command ${cmd.Name} completed with: ${replyVal}`);
+
+          if (replyVal?.handled)
+            return;
+
           await interaction.editReply({ content: replyVal || `Command ${cmd.Name} succeeded`, ephemeral: true });
         } catch(err) {
           console.error(err);
