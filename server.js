@@ -10,6 +10,30 @@ Dotenv.config();
 const app = Express();
 const clientManager = new ClientManager();
 const discordStorage = new DiscordDataStorage();
+const postCommandLogs = process.env.POST_COMMAND_LOGS?.toLowerCase() === 'true';
+
+function formatCommandArgs(optionData) {
+  if (!optionData || optionData.length < 1) {
+    return 'None';
+  }
+
+  const formattedOptions = [];
+  const recurseOptions = (options, prefix = '') => {
+    options.forEach((option) => {
+      const optionName = prefix ? `${prefix}.${option.name}` : option.name;
+
+      if (option.options?.length > 0) {
+        recurseOptions(option.options, optionName);
+      } else {
+        const optionValue = typeof option.value === 'string' ? `"${option.value}"` : `${option.value}`;
+        formattedOptions.push(`${optionName}=${optionValue}`);
+      }
+    });
+  };
+
+  recurseOptions(optionData);
+  return formattedOptions.length > 0 ? formattedOptions.join(', ') : 'None';
+}
 
 async function main() {
   const client = await clientManager.getClient();
@@ -23,6 +47,27 @@ async function main() {
         try {
           await interaction.deferReply({ ephemeral: true });
           const replyVal = await cmd.execute(interaction);
+
+          if (postCommandLogs) {
+            try {
+              const logChannelId = await discordStorage.getGuildValue(interaction.guildId, 'channel_logchannel');
+              if (logChannelId) {
+                const logChannel = await interaction.guild?.channels.fetch(logChannelId);
+                if (logChannel?.isTextBased()) {
+                  const formattedArgs = formatCommandArgs(interaction.options?.data);
+                  await logChannel.send([
+                    '📝 **Command Executed**',
+                    `User: ${interaction.user.username}`,
+                    `Command: /${interaction.commandName}`,
+                    `Arguments: ${formattedArgs}`
+                  ].join('\n'));
+                }
+              }
+            } catch (logErr) {
+              console.error(`Failed to post command log for /${interaction.commandName}:`, logErr);
+            }
+          }
+
           console.log(`Command ${cmd.Name} completed with: ${replyVal}`);
 
           if (replyVal?.handled)
