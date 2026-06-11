@@ -5,25 +5,32 @@ Dotenv.config();
 
 const memberPoolCache = new NodeCache({ stdTTL: parseInt(process.env.CACHE_MEMBER_POOL_TIME, 10) || 21600 });
 
-async function getGuildMemberPool(guild) {
-  const cachedMemberIds = memberPoolCache.get(guild.id);
+function getDisplayName(member) {
+  return member?.displayName || member?.nickname || member?.user?.globalName || member?.user?.username || 'Unknown User';
+}
 
-  if (cachedMemberIds) {
-    return cachedMemberIds;
+async function getGuildMemberPool(guild) {
+  const cachedMembers = memberPoolCache.get(guild.id);
+
+  if (cachedMembers) {
+    return cachedMembers;
   }
 
   const members = await guild.members.fetch();
-  const memberIds = members
+  const memberPool = members
     .filter((member) => member && !member.user?.bot)
-    .map((member) => member.user.id);
+    .map((member) => ({
+      id: member.user.id,
+      displayName: getDisplayName(member)
+    }));
 
-  memberPoolCache.set(guild.id, memberIds);
-  return memberIds;
+  memberPoolCache.set(guild.id, memberPool);
+  return memberPool;
 }
 
 async function getEligibleGuildMemberIds(guild, excludedIds = new Set()) {
-  const memberIds = await getGuildMemberPool(guild);
-  return memberIds.filter((memberId) => !excludedIds.has(memberId));
+  const memberPool = await getGuildMemberPool(guild);
+  return memberPool.filter((member) => !excludedIds.has(member.id));
 }
 
 module.exports = { getGuildMemberPool, getEligibleGuildMemberIds };

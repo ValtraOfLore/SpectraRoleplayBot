@@ -629,14 +629,14 @@ const commands = new Map([
       DiscordCommandAccessLevel.GUEST,
       async (interaction) => {
         try {
-          const eligibleMemberIds = await getEligibleGuildMemberIds(interaction.guild);
+          const eligibleMembers = await getEligibleGuildMemberIds(interaction.guild);
 
-          if (eligibleMemberIds.length < 1) {
+          if (eligibleMembers.length < 1) {
             return 'No eligible players were found in this server.';
           }
 
-          const [selectedMemberId] = getRandomElements(eligibleMemberIds, 1);
-          return `🎲 Random player: <@${selectedMemberId}>`;
+          const [selectedMember] = getRandomElements(eligibleMembers, 1);
+          return `🎲 Random player: ${selectedMember.displayName}`;
         } catch (e) {
           console.error(e);
           return 'An error occurred while selecting a random player.';
@@ -698,23 +698,24 @@ const commands = new Map([
             return `${baseUser} has already been used for key "${key}".`;
           }
 
-          const eligibleMemberIds = await getEligibleGuildMemberIds(interaction.guild, excludedIds);
+          const eligibleMembers = await getEligibleGuildMemberIds(interaction.guild, excludedIds);
 
-          if (eligibleMemberIds.length < requestedCount) {
+          if (eligibleMembers.length < requestedCount) {
             const qualifier = key ? ` for key "${key}"` : '';
             return `Not enough eligible players are available to match ${baseUser} with ${requestedCount} other player(s)${qualifier}.`;
           }
 
-          const matchedMemberIds = getRandomElements(eligibleMemberIds, requestedCount);
+          const matchedMembers = getRandomElements(eligibleMembers, requestedCount);
 
           if (key) {
-            const updatedHistory = [...new Set([...usedIds, baseUser.id, ...matchedMemberIds])];
+            const updatedHistory = [...new Set([...usedIds, baseUser.id, ...matchedMembers.map((member) => member.id)])];
             await dataStorage.setGuildValue(guildId, `player_match_key_${key}`, updatedHistory);
           }
 
-          const matchedPlayersString = matchedMemberIds.map((memberId) => `<@${memberId}>`).join(', ');
+          const basePlayerDisplayName = interaction.options?.getMember('player')?.displayName || baseUser.globalName || baseUser.username;
+          const matchedPlayersString = matchedMembers.map((member) => member.displayName).join(', ');
           const keyedMessage = key ? ` using key "${key}"` : '';
-          return `🤝 Matched ${baseUser} with: ${matchedPlayersString}${keyedMessage}`;
+          return `🤝 Matched ${basePlayerDisplayName} with: ${matchedPlayersString}${keyedMessage}`;
         } catch (e) {
           console.error(e);
           return 'An error occurred while matching players.';
