@@ -10,6 +10,17 @@ const Dotenv = require('dotenv');
 Dotenv.config();
 const dataStorage = new DiscordDataStorage();
 
+function getRandomElements(items, count) {
+  const shuffled = [...items];
+
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const swapIndex = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[i]];
+  }
+
+  return shuffled.slice(0, count);
+}
+
 const commands = new Map([
   [
     'pingbot',
@@ -606,6 +617,121 @@ const commands = new Map([
          return `An error has occurred while trying to clear thread`
         }
       }
+    )
+  ],
+  [
+    'random_player',
+    new DiscordCommand(
+      'random_player',
+      'Selects a random player from the server.',
+      [],
+      DiscordCommandAccessLevel.GUEST,
+      async (interaction) => {
+        try {
+          const members = await interaction.guild.members.fetch();
+          const eligibleMembers = members.filter((member) => !member.user?.bot);
+
+          if (eligibleMembers.size < 1) {
+            return 'No eligible players were found in this server.';
+          }
+
+          const selectedMember = eligibleMembers.random();
+          return `🎲 Random player: ${selectedMember}`;
+        } catch (e) {
+          console.error(e);
+          return 'An error occurred while selecting a random player.';
+        }
+      },
+      false
+    )
+  ],
+  [
+    'match_players',
+    new DiscordCommand(
+      'match_players',
+      'Matches a base player with a chosen number of other players.',
+      [
+        {
+          Type: DiscordCommandArgumentTypes.USER,
+          Name: 'player',
+          Description: 'The base player to match from.',
+          Required: true
+        },
+        {
+          Type: DiscordCommandArgumentTypes.INTEGER,
+          Name: 'count',
+          Description: 'How many other players to match with the base player.',
+          Required: false
+        },
+        {
+          Type: DiscordCommandArgumentTypes.STRING,
+          Name: 'key',
+          Description: 'Optional history key used to avoid reusing previously matched players.',
+          Required: false
+        }
+      ],
+      DiscordCommandAccessLevel.GUEST,
+      async (interaction) => {
+        try {
+          const guildId = interaction.guildId;
+          const baseUser = interaction.options?.get('player')?.user;
+          const requestedCount = interaction.options?.get('count')?.value ?? 1;
+          const key = interaction.options?.get('key')?.value?.trim();
+
+          if (!baseUser) {
+            return 'You must provide a base player to match from.';
+          }
+
+          if (baseUser.bot) {
+            return 'Bots cannot be used as the base player.';
+          }
+
+          if (requestedCount < 1) {
+            return 'The count must be at least 1.';
+          }
+
+          const members = await interaction.guild.members.fetch();
+          const keyedHistory = key ? (await dataStorage.getGuildValue(guildId, `player_match_key_${key}`)) ?? [] : [];
+          const usedIds = new Set(Array.isArray(keyedHistory) ? keyedHistory : []);
+
+          if (key && usedIds.has(baseUser.id)) {
+            return `${baseUser} has already been used for key "${key}".`;
+          }
+
+          const eligibleMembers = members.filter((member) => {
+            if (member.user?.bot)
+              return false;
+
+            if (member.user.id === baseUser.id)
+              return false;
+
+            if (key && usedIds.has(member.user.id))
+              return false;
+
+            return true;
+          });
+
+          if (eligibleMembers.size < requestedCount) {
+            const qualifier = key ? ` for key "${key}"` : '';
+            return `Not enough eligible players are available to match ${baseUser} with ${requestedCount} other player(s)${qualifier}.`;
+          }
+
+          const matchedMembers = getRandomElements([...eligibleMembers.values()], requestedCount);
+
+          if (key) {
+            const updatedHistory = [...new Set([...usedIds, baseUser.id, ...matchedMembers.map((member) => member.user.id)])];
+            await dataStorage.setGuildValue(guildId, `player_match_key_${key}`, updatedHistory);
+          }
+
+          const matchedPlayersString = matchedMembers.map((member) => `${member}`).join(', ');
+          const keyedMessage = key ? ` using key "${key}"` : '';
+          return `🤝 Matched ${baseUser} with: ${matchedPlayersString}${keyedMessage}`;
+        } catch (e) {
+          console.error(e);
+          return 'An error occurred while matching players.';
+        }
+      },
+      false
     )
   ],
 ]);

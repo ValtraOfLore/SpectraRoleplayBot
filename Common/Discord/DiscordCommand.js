@@ -3,12 +3,13 @@ const { DiscordDataStorage } = require('./DiscordDataStorage');
 const dataStorage = new DiscordDataStorage();
 
 class DiscordCommand {
-    constructor(name, description, args, accessLvl, execution) {
+    constructor(name, description, args, accessLvl, execution, ephemeral = true) {
         this.Name = name;
         this.Description = description;
         this.Arguments = args || [];
         this.DefaultAccessLevel = accessLvl || DiscordCommandAccessLevel.GUEST;
         this.ExecutionFunction = execution;
+        this.IsEphemeral = ephemeral;
     }
 
     async getCommandAccessLevel(interaction) {
