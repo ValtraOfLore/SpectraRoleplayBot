@@ -45,7 +45,8 @@ async function main() {
       const cmd = commands.get(interaction.commandName);
       if (cmd) {
         try {
-          await interaction.deferReply({ ephemeral: true });
+          const isEphemeral = cmd.IsEphemeral ?? true;
+          await interaction.deferReply({ ephemeral: isEphemeral });
           const replyVal = await cmd.execute(interaction);
 
           if (postCommandLogs) {
@@ -73,7 +74,7 @@ async function main() {
           if (replyVal?.handled)
             return;
 
-          await interaction.editReply({ content: replyVal || `Command ${cmd.Name} succeeded`, ephemeral: true });
+          await interaction.editReply({ content: replyVal || `Command ${cmd.Name} succeeded` });
         } catch(err) {
           console.error(err);
         }
