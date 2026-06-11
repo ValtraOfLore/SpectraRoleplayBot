@@ -5,6 +5,7 @@ const { createThreadStatusName } = require('../Helpers/Threads.js');
 const { postAwards } = require('../Helpers/Awards.js');
 const { pageAndProcessData } = require('../Helpers/PaginationHelper.js');
 const { sendChunkedInteractionResponse } = require('../Helpers/DiscordMessageHelper.js');
+const { getEligibleGuildMemberIds } = require('../Helpers/MemberPoolCache.js');
 const Dotenv = require('dotenv');
 
 Dotenv.config();
@@ -628,15 +629,14 @@ const commands = new Map([
       DiscordCommandAccessLevel.GUEST,
       async (interaction) => {
         try {
-          const members = await interaction.guild.members.fetch();
-          const eligibleMembers = members.filter((member) => !member.user?.bot);
+          const eligibleMemberIds = await getEligibleGuildMemberIds(interaction.guild);
 
-          if (eligibleMembers.size < 1) {
+          if (eligibleMemberIds.length < 1) {
             return 'No eligible players were found in this server.';
           }
 
-          const selectedMember = eligibleMembers.random();
-          return `🎲 Random player: ${selectedMember}`;
+          const [selectedMemberId] = getRandomElements(eligibleMemberIds, 1);
+          return `🎲 Random player: <@${selectedMemberId}>`;
         } catch (e) {
           console.error(e);
           return 'An error occurred while selecting a random player.';
@@ -690,40 +690,29 @@ const commands = new Map([
             return 'The count must be at least 1.';
           }
 
-          const members = await interaction.guild.members.fetch();
           const keyedHistory = key ? (await dataStorage.getGuildValue(guildId, `player_match_key_${key}`)) ?? [] : [];
           const usedIds = new Set(Array.isArray(keyedHistory) ? keyedHistory : []);
+          const excludedIds = new Set([baseUser.id, ...usedIds]);
 
           if (key && usedIds.has(baseUser.id)) {
             return `${baseUser} has already been used for key "${key}".`;
           }
 
-          const eligibleMembers = members.filter((member) => {
-            if (member.user?.bot)
-              return false;
+          const eligibleMemberIds = await getEligibleGuildMemberIds(interaction.guild, excludedIds);
 
-            if (member.user.id === baseUser.id)
-              return false;
-
-            if (key && usedIds.has(member.user.id))
-              return false;
-
-            return true;
-          });
-
-          if (eligibleMembers.size < requestedCount) {
+          if (eligibleMemberIds.length < requestedCount) {
             const qualifier = key ? ` for key "${key}"` : '';
             return `Not enough eligible players are available to match ${baseUser} with ${requestedCount} other player(s)${qualifier}.`;
           }
 
-          const matchedMembers = getRandomElements([...eligibleMembers.values()], requestedCount);
+          const matchedMemberIds = getRandomElements(eligibleMemberIds, requestedCount);
 
           if (key) {
-            const updatedHistory = [...new Set([...usedIds, baseUser.id, ...matchedMembers.map((member) => member.user.id)])];
+            const updatedHistory = [...new Set([...usedIds, baseUser.id, ...matchedMemberIds])];
             await dataStorage.setGuildValue(guildId, `player_match_key_${key}`, updatedHistory);
           }
 
-          const matchedPlayersString = matchedMembers.map((member) => `${member}`).join(', ');
+          const matchedPlayersString = matchedMemberIds.map((memberId) => `<@${memberId}>`).join(', ');
           const keyedMessage = key ? ` using key "${key}"` : '';
           return `🤝 Matched ${baseUser} with: ${matchedPlayersString}${keyedMessage}`;
         } catch (e) {
