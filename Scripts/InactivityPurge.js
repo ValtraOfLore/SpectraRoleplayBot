@@ -7,10 +7,10 @@ async function kickInactivity() {
     const client = await clientManager.getClient();
     const toKick = [];
     const toKickData = [];
-    const oryonGuild = client.guilds.cache.get('970768724095279136');
+    const oryonGuild = client.guilds.cache.get('970768724095279136'); // Oryon client.guilds.cache.get('1196879786497286284'); // Dreadmarch 
     const oryonMembers = await oryonGuild.members.fetch(); // await oryonGuild.members.list({ limit: 1000 });
 
-    oryonMembers.filter((member) => member.roles.cache.find(role => role.id === '1221961863873695874')).each(async (member) => {
+    oryonMembers.filter((member) => member.roles.cache.find(role => role.id === '1324492267213553726')).each(async (member) => {
       toKickData.push({
         ID: member.id,
         NickName: member.nickname,
