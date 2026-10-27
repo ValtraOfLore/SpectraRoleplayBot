@@ -3,19 +3,19 @@ const { AttachmentBuilder } = require('discord.js');
 
 async function getImageAsBuffer(url) {
     if (!url)
-        return sharp({ create: { width: 3166, height: 3166, channels: 3, background: { r: 255, g: 255, b: 255, alpha: 1 } } });
+        return sharp({ create: { width: 1024, height: 1024, channels: 3, background: { r: 255, g: 255, b: 255, alpha: 1 } } });
 
     const imageResponse = await fetch(url);
     if (imageResponse?.ok) {
         const buff = await imageResponse.arrayBuffer();
-        return sharp(buff).resize(3166, 3166, { fit: 'contain' }).png().toBuffer();
+        return sharp(buff).resize(1024, 1024, { fit: 'contain' }).png().toBuffer();
     } 
 }
 
 async function compositeImages(urlArray) {
     const awardPages = [];
-    const pageSize = 9500;
-    const tileSize = 3166;
+    const pageSize = 3072;
+    const tileSize = 1024;
     const backgroundColor = { r: 24, g: 24, b: 24, alpha: 1 };
     const outlineColor = '#3a3a3a';
     const outlineThickness = 8;
