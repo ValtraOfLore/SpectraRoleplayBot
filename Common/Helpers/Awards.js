@@ -1,6 +1,9 @@
 const sharp = require('sharp');
 const { AttachmentBuilder } = require('discord.js');
 
+sharp.cache(false);
+sharp.concurrency(1);
+
 async function getImageAsBuffer(url) {
     if (!url)
         return sharp({ create: { width: 1024, height: 1024, channels: 3, background: { r: 255, g: 255, b: 255, alpha: 1 } } });
