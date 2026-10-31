@@ -51,7 +51,7 @@ async function main() {
 
           if (postCommandLogs) {
             try {
-              const logChannelId = await discordStorage.getGuildValue(interaction.guildId, 'channel_logchannel');
+              const logChannelId = await discordStorage.getGuildMapValue(interaction.guildId, 'channels', 'logchannel', 'channel_logchannel');
               if (logChannelId) {
                 const logChannel = await interaction.guild?.channels.fetch(logChannelId);
                 if (logChannel?.isTextBased()) {
@@ -88,7 +88,7 @@ async function main() {
     const guildId = thread.guildId;
     const parentId = thread.parentId;
     const name = thread.name;
-    const approvalChannel = await discordStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
+    const approvalChannel = await discordStorage.getGuildMapValue(guildId, 'channels', 'characterapprovalchannel', 'channel_characterapprovalchannel');
     console.log(`Thread has been created! Name: ${thread.name} | Channel: ${thread.parent} | Channel ID: ${parentId} | Guild ID: ${guildId}`);
     // Character Approval Channel
     if (guildId && parentId && parentId === approvalChannel) {
