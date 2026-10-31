@@ -32,11 +32,12 @@ class DiscordDataStorage {
             return this.guildCollection.updateOne({ guildId }, update, { upsert: true });
         }
 
-        const current = await this.guildDB.get(guildId);
+        let current = await this.guildDB.get(guildId);
         if (!current)
             current = {};
         current[key] = value;
-        this.guildCache.set(guildId, current);
+        if (this.useCache)
+            this.guildCache.set(guildId, current);
         await this.guildDB.set(guildId, current);
     }
 
@@ -76,15 +77,16 @@ class DiscordDataStorage {
         if (!current)
             current = {};
         current[key] = value;
-        this.userCache.set(userId, current);
-        await this.userDB.set(guildId, current);
+        if (this.useCache)
+            this.userCache.set(userId, current);
+        await this.userDB.set(userId, current);
     }
 
     async getUserValue(userId, key) {
         let current = this.useCache ? this.userCache.get(userId) : null;
         if (!current) {
             console.log(`Data for user: ${userId} with key ${key} not in cache. Retrieving from database...`);
-            const getter = this.useMongoDB ? this.userCollection.findOne({ userId }) : this.guildDB.get(userId);
+            const getter = this.useMongoDB ? this.userCollection.findOne({ userId }) : this.userDB.get(userId);
             current = await getter;
             if (this.userCache)
                 this.userCache.set(userId, current);
@@ -94,6 +96,38 @@ class DiscordDataStorage {
 
     async getAllUsers() {
         return this.useMongoDB ? this.userCollection.find() : this.userDB.all();
+    }
+
+    async getGuildMapValue(guildId, mapKey, entryKey, legacyKey) {
+        const map = await this.getGuildValue(guildId, mapKey);
+        if (map && typeof map === 'object' && !Array.isArray(map) && map[entryKey] !== undefined && map[entryKey] !== null)
+            return map[entryKey];
+
+        return legacyKey ? this.getGuildValue(guildId, legacyKey) : null;
+    }
+
+    async setGuildMapValue(guildId, mapKey, entryKey, value) {
+        const currentMap = await this.getGuildValue(guildId, mapKey);
+        const updatedMap = currentMap && typeof currentMap === 'object' && !Array.isArray(currentMap)
+            ? { ...currentMap, [entryKey]: value }
+            : { [entryKey]: value };
+        return this.setGuildValue(guildId, mapKey, updatedMap);
+    }
+
+    async getUserMapValue(userId, mapKey, entryKey, legacyKey) {
+        const map = await this.getUserValue(userId, mapKey);
+        if (map && typeof map === 'object' && !Array.isArray(map) && map[entryKey] !== undefined && map[entryKey] !== null)
+            return map[entryKey];
+
+        return legacyKey ? this.getUserValue(userId, legacyKey) : null;
+    }
+
+    async setUserMapValue(userId, mapKey, entryKey, value) {
+        const currentMap = await this.getUserValue(userId, mapKey);
+        const updatedMap = currentMap && typeof currentMap === 'object' && !Array.isArray(currentMap)
+            ? { ...currentMap, [entryKey]: value }
+            : { [entryKey]: value };
+        return this.setUserValue(userId, mapKey, updatedMap);
     }
 
     constructor() {

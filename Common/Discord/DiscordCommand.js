@@ -14,7 +14,7 @@ class DiscordCommand {
 
     async getCommandAccessLevel(interaction) {
         const guildId = interaction.guildId;
-        return (await dataStorage.getGuildValue(guildId, `command_level_${this.Name}`)) || this.DefaultAccessLevel || DiscordCommandAccessLevel.GUEST;
+        return (await dataStorage.getGuildMapValue(guildId, 'commandAccessLevels', this.Name, `command_level_${this.Name}`)) ?? this.DefaultAccessLevel ?? DiscordCommandAccessLevel.GUEST;
     }
 
     async isAccessLevel(interaction) {
@@ -57,8 +57,8 @@ class DiscordCommand {
 
         for (let roleIndex in roles) {
             const role = roles[roleIndex];
-            const roleAccessLevel = await dataStorage.getGuildValue(guildId, `role_access_level_${role.id}`);
-            if (roleAccessLevel)
+            const roleAccessLevel = await dataStorage.getGuildMapValue(guildId, 'roleAccessLevels', role.id, `role_access_level_${role.id}`);
+            if (roleAccessLevel !== null)
                 roleAccessLevels.push(roleAccessLevel);
         }
 

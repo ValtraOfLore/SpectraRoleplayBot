@@ -65,7 +65,7 @@ const commands = new Map([
           const guildId = interaction.guildId;
           const roleId = interaction.options?.get('role')?.value;
           const accessLvl = interaction.options?.get('access_level')?.value;
-          await dataStorage.setGuildValue(guildId, `role_access_level_${roleId}`, accessLvl);
+          await dataStorage.setGuildMapValue(guildId, 'roleAccessLevels', roleId, accessLvl);
           return 'access_level set for role!';
         } catch (e) {
           console.error(e);
@@ -111,7 +111,7 @@ const commands = new Map([
           } else if (command.DefaultAccessLevel === DiscordCommandAccessLevel.OWNER) {
             return `Cannot override OWNER level commands!`;
           } else {
-            await dataStorage.setGuildValue(guildId, `command_level_${commandName}`, accessLvl);
+            await dataStorage.setGuildMapValue(guildId, 'commandAccessLevels', commandName, accessLvl);
             return 'access_level set for command!';
           }
         } catch (e) {
@@ -138,8 +138,8 @@ const commands = new Map([
       DiscordCommandAccessLevel.ADMINISTRATOR,
       async (interaction) => {
         const role = interaction.options?.get('role')?.value;
-        const accessLevel = await dataStorage.getGuildValue(interaction.guildId, `role_access_level_${role}`);
-        return `Role ${role} has access level: ${accessLevel || '4'}`;
+        const accessLevel = await dataStorage.getGuildMapValue(interaction.guildId, 'roleAccessLevels', role, `role_access_level_${role}`);
+        return `Role ${role} has access level: ${accessLevel ?? '4'}`;
       }
     )
   ],
@@ -200,7 +200,7 @@ const commands = new Map([
         const channel = interaction.options?.get('channel')?.value;
         const channelType = interaction.options?.get('channeltype')?.value;
         try {
-          await dataStorage.setGuildValue(guildId, `channel_${channelType}`, channel);
+          await dataStorage.setGuildMapValue(guildId, 'channels', channelType, channel);
           return `Channel ${channel} set as ${channelType}!`;
         } catch (e) {
           console.error(e);
@@ -238,7 +238,7 @@ const commands = new Map([
         const configType = interaction.options?.get('configtype')?.value;
         const configValue = interaction.options?.get('configvalue')?.value;
         try {
-          await dataStorage.setGuildValue(guildId, `config_${configType}`, configValue);
+          await dataStorage.setGuildMapValue(guildId, 'config', configType, configValue);
           return `Configuration ${configType} set as ${configValue}!`;
         } catch (e) {
           console.error(e);
@@ -279,7 +279,7 @@ const commands = new Map([
         const senddm = interaction.options?.get('senddm')?.value;
         const thread = interaction.channel;
         const parentChannelId = interaction.channel?.parentId;
-        const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
+        const approvalChannel = await dataStorage.getGuildMapValue(guildId, 'channels', 'characterapprovalchannel', 'channel_characterapprovalchannel');
         if (thread && approvalChannel === parentChannelId) {
           console.log(`Setting character approval status for ${thread.name}`);
           let emoji;
@@ -289,7 +289,7 @@ const commands = new Map([
           switch (status) {
             case 'approved':
               emoji = '👍';
-              const msg = await dataStorage.getGuildValue(guildId, 'config_approvedcharacterdm');
+              const msg = await dataStorage.getGuildMapValue(guildId, 'config', 'approvedcharacterdm', 'config_approvedcharacterdm');
               message = msg ? `${msg}\n\nCharacter: ${thread.name}` : `Your character ${thread.name} has been approved! Please meet with an intro'er for your intro!`;
               sendIntrodMsg = true;
               checkNeedsIntroRole = true;
@@ -315,7 +315,7 @@ const commands = new Map([
           }
 
           if (sendIntrodMsg) {
-            const introdChannel = await dataStorage.getGuildValue(guildId, 'channel_introerchannel');
+            const introdChannel = await dataStorage.getGuildMapValue(guildId, 'channels', 'introerchannel', 'channel_introerchannel');
             if (introdChannel) {
               const channel = await interaction.guild.channels.fetch(introdChannel);
               channel.send(`${thread.name} has been approved for intro!`);
@@ -324,11 +324,11 @@ const commands = new Map([
 
           try {
             if (checkNeedsIntroRole) {
-              const role = await dataStorage.getGuildValue(guildId, 'config_needsintrorole');
+              const role = await dataStorage.getGuildMapValue(guildId, 'config', 'needsintrorole', 'config_needsintrorole');
               if (role) {
                 const owner = await thread.fetchOwner({ withMember: true, force: true });
                 const ownerMember = owner?.guildMember;
-                let charToIntroCnt = await dataStorage.getUserValue(thread.ownerId, `intro_count_${guildId}`) ?? 0;
+                let charToIntroCnt = await dataStorage.getUserMapValue(thread.ownerId, 'introCounts', guildId, `intro_count_${guildId}`) ?? 0;
 
                 if (status === 'approved') {
                   charToIntroCnt += 1;
@@ -336,7 +336,7 @@ const commands = new Map([
                   charToIntroCnt = charToIntroCnt > 0 ? charToIntroCnt - 1 : 0;
                 }
 
-                dataStorage.setUserValue(thread.ownerId, `intro_count_${guildId}`, charToIntroCnt);
+                await dataStorage.setUserMapValue(thread.ownerId, 'introCounts', guildId, charToIntroCnt);
 
                 if (charToIntroCnt > 0 && ownerMember) {
                   console.log('User needs intro. Upserting Intro Role');
@@ -381,7 +381,7 @@ const commands = new Map([
         const guildId = interaction.guildId;
         const thread = interaction.channel;
         const parentChannelId = interaction.channel?.parentId;
-        const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
+        const approvalChannel = await dataStorage.getGuildMapValue(guildId, 'channels', 'characterapprovalchannel', 'channel_characterapprovalchannel');
         if (thread && approvalChannel === parentChannelId) {
           console.log(`Setting character approval status for ${thread.name} as introd`);
 
@@ -390,14 +390,14 @@ const commands = new Map([
               console.log(`Setting thread name for ${thread.name}`);
               await thread.setName(createThreadStatusName('✅', thread.name));
 
-              const role = await dataStorage.getGuildValue(guildId, 'config_needsintrorole');
+              const role = await dataStorage.getGuildMapValue(guildId, 'config', 'needsintrorole', 'config_needsintrorole');
               if (role) {
                 const owner = await thread.fetchOwner({ withMember: true, force: true });
                 const ownerMember = owner?.guildMember;
-                let charToIntroCnt = await dataStorage.getUserValue(thread.ownerId, `intro_count_${guildId}`) ?? 0;
+                let charToIntroCnt = await dataStorage.getUserMapValue(thread.ownerId, 'introCounts', guildId, `intro_count_${guildId}`) ?? 0;
                 charToIntroCnt = charToIntroCnt > 0 ? charToIntroCnt - 1 : 0;
 
-                dataStorage.setUserValue(thread.ownerId, `intro_count_${guildId}`, charToIntroCnt);
+                await dataStorage.setUserMapValue(thread.ownerId, 'introCounts', guildId, charToIntroCnt);
 
                 if (ownerMember && charToIntroCnt < 1) {
                   console.log('The user no longer needs an intro. Removing the Intro Role.');
@@ -522,7 +522,7 @@ const commands = new Map([
         const awardId = interaction.options?.get('award_id')?.value;
         const thread = interaction.channel;
         const parentChannelId = interaction.channel?.parentId;
-        const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
+        const approvalChannel = await dataStorage.getGuildMapValue(guildId, 'channels', 'characterapprovalchannel', 'channel_characterapprovalchannel');
         const threadOwnerId = thread?.ownerId;
         const threadId = thread?.id;
 
@@ -533,21 +533,20 @@ const commands = new Map([
           if (!award)
             return `${awardId} is not a valid award_id. Please use a valid award_id or create one using /post_award.`;
 
-          const characterAwards = await dataStorage.getUserValue(threadOwnerId, `awards_${threadId}`) ?? [];
+          const characterAwards = await dataStorage.getUserMapValue(threadOwnerId, 'characterAwards', threadId, `awards_${threadId}`) ?? [];
 
           if (characterAwards.find((ownedAwardId) => ownedAwardId === awardId))
             return `This character already has award ${awardId}.`;
 
           try {
             characterAwards.push(awardId);
-            await dataStorage.setUserValue(threadOwnerId, `awards_${threadId}`, characterAwards);
-
-            const awardMsgThreads = await dataStorage.getUserValue(threadOwnerId, `awards_${threadId}_messages`) ?? [];
+            const awardMsgThreads = await dataStorage.getUserMapValue(threadOwnerId, 'characterAwardMessageIds', threadId, `awards_${threadId}_messages`) ?? [];
             const guildAwards = await dataStorage.getGuildValue(guildId, 'awards');
             const urlArray = characterAwards.map((awardId) => guildAwards.find((awardObj) => awardObj.awardId === awardId)?.awardImgUrl);
             const newMsgIds = await postAwards(thread, urlArray, awardMsgThreads);
 
-            dataStorage.setUserValue(threadOwnerId, `awards_${threadId}_messages`, newMsgIds);
+            await dataStorage.setUserMapValue(threadOwnerId, 'characterAwards', threadId, characterAwards);
+            await dataStorage.setUserMapValue(threadOwnerId, 'characterAwardMessageIds', threadId, newMsgIds);
 
             return `Award successfully added!`;
           } catch (e) {
@@ -570,13 +569,13 @@ const commands = new Map([
         const guildId = interaction.guildId;
         const thread = interaction.channel;
         const parentChannelId = interaction.channel?.parentId;
-        const approvalChannel = await dataStorage.getGuildValue(guildId, 'channel_characterapprovalchannel');
+        const approvalChannel = await dataStorage.getGuildMapValue(guildId, 'channels', 'characterapprovalchannel', 'channel_characterapprovalchannel');
         const threadOwnerId = thread?.ownerId;
         const threadId = thread?.id;
 
         if (thread && threadId && approvalChannel === parentChannelId) {
-          const characterAwards = await dataStorage.getUserValue(threadOwnerId, `awards_${threadId}`) ?? [];
-          const awardMsgThreads = await dataStorage.getUserValue(threadOwnerId, `awards_${threadId}_messages`) ?? [];
+          const characterAwards = await dataStorage.getUserMapValue(threadOwnerId, 'characterAwards', threadId, `awards_${threadId}`) ?? [];
+          const awardMsgThreads = await dataStorage.getUserMapValue(threadOwnerId, 'characterAwardMessageIds', threadId, `awards_${threadId}_messages`) ?? [];
           const guildAwards = await dataStorage.getGuildValue(guildId, 'awards');
           const urlArray = characterAwards.map((awardId) => guildAwards.find((awardObj) => awardObj.awardId === awardId)?.awardImgUrl);
           const newMsgIds = await postAwards(thread, urlArray, awardMsgThreads);
@@ -584,7 +583,7 @@ const commands = new Map([
           if (newMsgIds.length < 1)
             return `This user has no awards!`;
 
-          dataStorage.setUserValue(threadOwnerId, `awards_${threadId}_messages`, newMsgIds);
+          await dataStorage.setUserMapValue(threadOwnerId, 'characterAwardMessageIds', threadId, newMsgIds);
         }
       }
     )
@@ -690,7 +689,7 @@ const commands = new Map([
             return 'The count must be at least 1.';
           }
 
-          const keyedHistory = key ? (await dataStorage.getGuildValue(guildId, `player_match_key_${key}`)) ?? [] : [];
+          const keyedHistory = key ? (await dataStorage.getGuildMapValue(guildId, 'playerMatchHistory', key, `player_match_key_${key}`)) ?? [] : [];
           const usedIds = new Set(Array.isArray(keyedHistory) ? keyedHistory : []);
           const excludedIds = new Set([baseUser.id, ...usedIds]);
 
@@ -709,7 +708,7 @@ const commands = new Map([
 
           if (key) {
             const updatedHistory = [...new Set([...usedIds, baseUser.id, ...matchedMembers.map((member) => member.id)])];
-            await dataStorage.setGuildValue(guildId, `player_match_key_${key}`, updatedHistory);
+            await dataStorage.setGuildMapValue(guildId, 'playerMatchHistory', key, updatedHistory);
           }
 
           const basePlayerDisplayName = interaction.options?.getMember('player')?.displayName || baseUser.globalName || baseUser.username;
